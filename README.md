@@ -23,7 +23,7 @@ As part of the certification process, you will be required to complete a backend
 + The feature can be tested appropriately
 + TX is not unexpectedly aborted 
 
-🚨 **IMPORTATN NOTE** 🚨
+🚨 **IMPORTANT NOTE** 🚨
 + **The evaluation of your project requires a README that adheres to the format provided in the README of the sample project below.**
 
 + Your README should document the purpose and functionalities of the project, as well as any important details about how it works. The README file should also include instructions on how to run the project, how to run the tests, and any dependencies required to do so. This documentation will help others understand your project and how to use it, and will also demonstrate your ability to clearly communicate about your work.
