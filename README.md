@@ -1,39 +1,3 @@
-# Daml Fundamentals Certificate Sample App
-
-✨ Welcome to the Daml Fundamentals Certification Sample App! ✨
-
-As part of the certification process, you will be required to complete a backend-only capstone project that demonstrates your understanding of the material covered throughout the Daml Fundamentals Certification Path. You have the freedom to choose the topic of your project as long as it fulfills the criteria specified below. 
-
-**The project must include the following components that are fully operational:**
-
-+ A signatory with the authority to create and archive contracts
-+ A controller with the authority to exercise choices on contracts
-+ An observer with the authority to view contracts
-+ Test scripts that verify the functionalities of the above mentioned parties
-
-**Bonus points will be awarded if you implement the following features:**
-
-+ Use the propose / accept design pattern
-+ Use the try / catch block for error handling
-
-**We will score all required and bonus features (6 in total) by the following:**
-
-+ The feature is free of bugs
-+ Only authorized users have access to the feature
-+ The feature can be tested appropriately
-+ TX is not unexpectedly aborted 
-
-🚨 **IMPORTANT NOTE** 🚨
-+ **The evaluation of your project requires a README that adheres to the format provided in the README of the sample project below.**
-
-+ Your README should document the purpose and functionalities of the project, as well as any important details about how it works. The README file should also include instructions on how to run the project, how to run the tests, and any dependencies required to do so. This documentation will help others understand your project and how to use it, and will also demonstrate your ability to clearly communicate about your work.
-
-To help you prepare for your capstone project, we provide this sample app as a guide for the kind of app you should aim to build. The sample app has been designed to showcase the key concepts and skills that you will need to apply in your own project.
-
-We recommend that you examine this app closely, paying attention to the code structure, functionality, and the test script. We believe that this sample app will be an invaluable resource for you as you work towards your certification. Happy coding!
-
----
-
 # Project Proposal App
 Daml templates designed for a platform for proposing project ideas to get rejected/approved.
 
@@ -49,8 +13,6 @@ This project was created by using the `empty-skeleton` template. The project ado
 [![Demo](./Demo.png)](https://share.vidyard.com/watch/xbDuZMbNUbgfHmPnqzt72N?)
 
 ### III. Challenge(s)
-* `controller ... can` syntax causes warning in Daml 2.0+. The code itself does not cause any issues/errors in 2.5.0 but according to the warning, the syntax will be deprecated in the future versions of Daml. More information [here](https://docs.daml.com/daml/reference/choices.html#daml-ref-controller-can-deprecation).
-* The new controller syntax requires a controller to be an observer first before they can exercise a choice, otherwise it'll throw an error: "Attempt to fetch or exercise a contract not visible to the committer." For more information, check out [this post](https://discuss.daml.com/t/error-attempt-to-fetch-or-exercise-a-contract-not-visible-to-the-committer/1304/1) on the Daml Forum.
 * The project was created by using `empty-skeleton` and the following was removed from `daml.yaml`:
 ```
 sandbox-options:

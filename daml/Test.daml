@@ -2,28 +2,215 @@ module Test where
 import Main
 import Daml.Script
 
-setup : Script ProjectId
-setup = do 
-    alice <- allocatePartyWithHint "Alice" (PartyIdHint "Alice")
-    bob <- allocatePartyWithHint "Bob" (PartyIdHint "Bob")
-    charlie <- allocatePartyWithHint "Charlie" (PartyIdHint "Charlie")
+data TestUsers = TestUsers with
+    alice     : Party
+    bob       : Party
+    teacher   : Party
+    assistant : Party
+    parent    : Party
 
-    bobProjectIdea <- submit bob do
-        createCmd ProjectIdea with
-            employee = bob
-            colleague = charlie
-            manager = alice
-            project = "Daml Fundamentals Certification Capstone Rubric - Draft No. 1"
-            note = "Should include both backend AND frontend"
+setupUsers : Script TestUsers
+setupUsers = script do
+    alice     <- allocatePartyWithHint "Alice"     (PartyIdHint "Alice")
+    bob       <- allocatePartyWithHint "Bob"       (PartyIdHint "Bob")
+    teacher   <- allocatePartyWithHint "Teacher"   (PartyIdHint "Teacher")
+    assistant <- allocatePartyWithHint "Assistant" (PartyIdHint "Assistant")
+    parent    <- allocatePartyWithHint "Parent"    (PartyIdHint "Parent")
+    return $ TestUsers with ..
 
-    aliceRejects <- submit alice do 
-        exerciseCmd bobProjectIdea Reject with
-            feedback = "No way, teaching frontend at this point is too much"
-    
-    bobRevises <- submit bob do
-        exerciseCmd aliceRejects Revise with
-            newProject = "Daml Fundamentals Certification Capstone Rubric - Draft No.2"
-            newNote = "Agreed, let's focus on the Daml backend and Navigator"
 
-    submit alice do
-        exerciseCmd bobRevises Accept
+setupDraftExam : Party -> Party -> Script (ContractId DraftExam)
+setupDraftExam teacher assistant = script do
+    submit teacher do
+        createCmd DraftExam with
+            teacher = teacher
+            assistant = assistant
+            subject = "English"
+            year = 2023
+            question = "Todo: Come up with a exam question"
+
+
+setup : Script ()
+setup = do
+    users@TestUsers{..} <- setupUsers
+
+    testDraftExamRevision users
+    testScrapDraft users
+    testCompleteExam users
+    testExamWithInvalidParams users
+    testExamNeedsFixAndRemoved users
+    testExamGrades users
+    pure ()
+
+
+testDraftExamRevision : TestUsers -> Script (ContractId Exam)
+testDraftExamRevision TestUsers{..} = do
+    teacherDraftExam    <- setupDraftExam teacher assistant
+
+    assistantSuggestion <- submit assistant do
+        exerciseCmd teacherDraftExam Revise with
+            user = assistant
+            newQuestion = "Describe one of Shakespeare's works"
+
+    -- student does not have visibility of contract and cannot revise
+    submitMustFail alice do
+        exerciseCmd assistantSuggestion Revise with
+            user = alice
+            newQuestion = "Easy Question"
+
+    newYearTeacherDraft <- submit teacher do
+        exerciseCmd assistantSuggestion BrandNewExam
+
+    submit teacher do
+        exerciseCmd newYearTeacherDraft Publish with
+            students = [alice, bob]
+
+testScrapDraft : TestUsers -> Script ()
+testScrapDraft TestUsers{..} = do
+    teacherDraftExam    <- setupDraftExam teacher assistant
+
+    -- assistant cannot scrap the exam
+    submitMustFail assistant do exerciseCmd teacherDraftExam ScrapExam
+    submit         teacher   do exerciseCmd teacherDraftExam ScrapExam
+
+
+
+testCompleteExam : TestUsers -> Script ()
+testCompleteExam TestUsers{..} = do
+    teacherDraftExam <- submit teacher do
+        createCmd DraftExam with
+            teacher
+            assistant
+            subject = "English"
+            year = 2023
+            question = "Describe one of Shakespeare's works"
+
+    exam <- submit teacher do
+        exerciseCmd teacherDraftExam Publish with
+            students = [alice]
+
+    -- not disclosed or dont have authorization to take the exam
+    submitMustFail alice   do exerciseCmd exam TakeExam with student = bob
+    submitMustFail bob     do exerciseCmd exam TakeExam with student = bob
+    submitMustFail teacher do exerciseCmd exam TakeExam with student = teacher
+
+    examInProgress <- submit alice do
+        exerciseCmd exam TakeExam with
+            student = alice
+
+    finalExam <- submit alice do
+        exerciseCmd examInProgress RewriteAnswer with
+            newAnswer = "Romeo and Juliet summary is as follows: An age-old vendetta between two powerful families erupts into bloodshed. (...)"
+
+    gradedExam <- submit teacher do
+        exerciseCmd finalExam Grade with
+            score = 80.0
+            note = "Explanation could be more detailed."
+            parent
+
+    pure ()
+
+-- test empty subject and question
+testExamWithInvalidParams : TestUsers -> Script ()
+testExamWithInvalidParams TestUsers{..} = do
+    emptySubjectExam <- submit teacher do
+        createCmd DraftExam with
+            teacher
+            assistant
+            subject = ""
+            year = 2023
+            question = "Question"
+
+    -- empty subject is not allowed in final exam
+    submitMustFail teacher do
+        exerciseCmd emptySubjectExam Publish with
+            students = [alice]
+
+    emptyQuestionExam <- submit teacher do
+        createCmd DraftExam with
+            teacher
+            assistant
+            subject = "English"
+            year = 2023
+            question = ""
+
+    -- empty question is not allowed in final exam
+    submitMustFail teacher do
+        exerciseCmd emptyQuestionExam Publish with
+            students = [alice]
+
+-- Fix Exam and Remove Exam
+testExamNeedsFixAndRemoved : TestUsers -> Script ()
+testExamNeedsFixAndRemoved TestUsers{..} = do
+    examTypo <- submitMulti [teacher, alice] [] do
+        createCmd Exam with
+            teacher
+            subject = "English"
+            year = 2023
+            question = "A Prefect Question"
+            students = [alice]
+
+    fixExamDraft <- submit teacher do
+        exerciseCmd examTypo FixExam with
+            assistant
+
+    teacherChangeDraft <- submit teacher do
+        exerciseCmd fixExamDraft Revise with
+            user = teacher
+            newQuestion = "A Perfect Question"
+
+    newExam <- submit teacher do
+        exerciseCmd teacherChangeDraft Publish with
+            students = [alice]
+
+    -- neither the teacher or assistant can remove the exam
+    submitMustFail alice     do exerciseCmd newExam Remove
+    submitMustFail assistant do exerciseCmd newExam Remove
+
+    submit teacher   do exerciseCmd newExam Remove
+
+    pure()
+
+testExamGrades : TestUsers ->  Script (ContractId ExamGraded, ContractId ExamGraded)
+testExamGrades TestUsers{..} = do
+    exam <- submitMulti [teacher, alice] [] do
+        createCmd ExamInProgress with
+            teacher
+            student = alice
+            subject = "English"
+            year = 2023
+            question = "Describe one of Shakespeare's works"
+            answer = "[Great Answer]"
+
+    gradedExam <- submit teacher do
+        exerciseCmd exam Grade with
+            score = 90.0
+            note = "Explanation could be more detailed."
+            parent
+
+    examBob <- submitMulti [teacher, bob] [] do
+        createCmd ExamInProgress with
+            teacher
+            student = bob
+            subject = "English"
+            year = 2023
+            question = "Describe one of Shakespeare's works"
+            answer = "As an AI language model : (...)"
+
+    -- test invalid scores: negative and over 100
+    submitMustFail teacher do exerciseCmd examBob Grade with score = -10.0; note = ""; parent
+    submitMustFail teacher do exerciseCmd examBob Grade with score = 110.0; note = ""; parent
+
+    gradedExamBob <- submit teacher do
+        exerciseCmd examBob Grade with
+            score = 0.0
+            note = "Exam Failed. Next time don't copy paste everything from the ai response."
+            parent
+
+    childrenExams <- query @ExamGraded parent
+    debug $ "Children Exams: " <> show childrenExams
+
+    childrenBadExams <- queryFilter @ExamGraded parent (\e -> e.gradeLetter == "F")
+    debug $ "Children Bad Exams: " <> show childrenBadExams
+
+    pure (gradedExam, gradedExamBob)

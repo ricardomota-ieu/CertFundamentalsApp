@@ -1,60 +1,134 @@
 module Main where
 
-type ProjectIdeaId = ContractId ProjectIdea
-type ProjectId = ContractId Project
-
-template ProjectIdea
+template DraftExam
     with
-        employee : Party
-        colleague : Party
-        manager : Party
-        project : Text
-        note : Text
+        teacher   : Party
+        assistant : Party
+        subject   : Text
+        year      : Int
+        question  : Text
     where 
-        signatory employee
-        observer colleague, manager
+        signatory teacher
+        observer assistant
 
-        -- employee can propose a project idea 
-        choice Propose : ProjectIdeaId -- "ProjectIdeaId" replaces "ContractId ProjectIdea"
-            controller employee
+        -- teacher can prepare a "new" exam for his class next year
+        choice BrandNewExam : ContractId DraftExam
+            controller teacher
             do
-                create this
+                create this with year = year + 1
 
-        -- upon getting rejected, employee can revise the project idea
-        choice Revise : ProjectIdeaId
+        -- todo: separate choices or check for teacher and assistant
+        -- both the teacher and the assistant can update the exams contents
+        choice Revise : ContractId DraftExam
             with
-                newProject : Text
-                newNote : Text 
-            controller employee
+                user : Party
+                newQuestion : Text
+            controller user
             do
-                create this with
-                    project = newProject
-                    note = newNote
+                assertMsg "Only the teacher and assistant can revise the exam draft" (user == teacher || user == assistant)
+                create this with question = newQuestion
 
-        -- manager can reject the project idea
-        choice Reject : ProjectIdeaId 
-            with
-                feedback : Text
-            controller manager
-            do
-                create this with 
-                    note = feedback 
+        -- teacher can delete the draft exam (same as archive)
+        choice ScrapExam : () 
+            controller teacher
+            do return ()
         
-        -- manager can accept the project idea, which will archive the project that the choice is being exercised and create a new contract
-        choice Accept : ProjectId
-            controller manager
+        -- teacher can choose to publish the final version of the exam
+        choice Publish : ContractId Exam
+            with
+                students : [Party]
+            controller teacher
             do
-                create Project with
-                    employeeInContract = employee
-                    managerInContract = manager
-                    projectTitle = project 
-                    description = note 
+                create Exam with ..
 
-template Project
+template Exam
     with 
-        employeeInContract : Party
-        managerInContract : Party
-        projectTitle : Text 
-        description : Text 
+        teacher  : Party
+        subject  : Text
+        year     : Int
+        question : Text
+        students : [Party]
     where
-        signatory employeeInContract, managerInContract
+        signatory teacher
+        observer students
+
+        ensure subject /= "" && question /= ""
+
+        key (teacher, subject, year) : (Party, Text, Int)
+        maintainer key._1
+
+        choice TakeExam : ContractId ExamInProgress
+            with
+                student : Party
+            controller student
+            do 
+                assertMsg "student must be part of allowed students to take exam" (elem student students)
+                create ExamInProgress with answer = ""; ..
+        
+        -- not possible to take the exam anymore
+        choice Remove : () 
+            controller teacher
+            do return ()
+        
+        -- something is wrong with the exam and needs to be recalled
+        choice FixExam : ContractId DraftExam
+            with
+                assistant : Party
+            controller teacher
+            do create DraftExam with ..
+
+getLetterGrade: Decimal -> Text
+getLetterGrade score
+    | score >= 90.0 = "A"
+    | score >= 80.0 = "B"
+    | score >= 70.0 = "C"
+    | otherwise = "F"
+template ExamInProgress
+    with 
+        teacher  : Party
+        student  : Party
+        subject  : Text
+        year     : Int
+        question : Text
+        answer   : Text
+     where
+        signatory teacher, student
+
+        choice RewriteAnswer : ContractId ExamInProgress
+            with
+                newAnswer : Text
+            controller student
+            do
+                create this with answer = newAnswer
+        
+        choice Grade : ContractId ExamGraded
+            with
+                score : Decimal
+                note: Text
+                parent: Party
+            controller teacher
+            do
+                now <- getTime
+                create ExamGraded with 
+                    gradeLetter = getLetterGrade score
+                    gradedTime = now
+                    .. 
+
+template ExamGraded
+    with 
+        teacher     : Party
+        student     : Party
+        parent      : Party
+        subject     : Text
+        year        : Int
+        question    : Text
+        answer      : Text
+        score       : Decimal
+        gradeLetter : Text
+        note        : Text
+        gradedTime  : Time      
+     where
+        signatory teacher, student
+        observer parent
+
+        ensure score >= 0.0 && score <= 100.0
