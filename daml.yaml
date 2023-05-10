@@ -1,5 +1,5 @@
 sdk-version: 2.5.0
-name: ProjectProposalApp
+name: ProjectProposalAppExam
 source: daml
 init-script: Test:setup
 version: 0.0.1

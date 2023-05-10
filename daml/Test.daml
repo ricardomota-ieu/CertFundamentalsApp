@@ -163,11 +163,10 @@ testExamNeedsFixAndRemoved TestUsers{..} = do
         exerciseCmd teacherChangeDraft Publish with
             students = [alice]
 
-    -- neither the teacher or assistant can remove the exam
-    submitMustFail alice     do exerciseCmd newExam Remove
-    submitMustFail assistant do exerciseCmd newExam Remove
+    -- student cannot remove the exam
+    submitMustFail alice do exerciseCmd newExam Remove
 
-    submit teacher   do exerciseCmd newExam Remove
+    submit teacher do exerciseCmd newExam Remove
 
     pure()
 

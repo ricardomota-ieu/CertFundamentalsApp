@@ -11,13 +11,6 @@ template DraftExam
         signatory teacher
         observer assistant
 
-        -- teacher can prepare a "new" exam for his class next year
-        choice BrandNewExam : ContractId DraftExam
-            controller teacher
-            do
-                create this with year = year + 1
-
-        -- todo: separate choices or check for teacher and assistant
         -- both the teacher and the assistant can update the exams contents
         choice Revise : ContractId DraftExam
             with
@@ -27,6 +20,13 @@ template DraftExam
             do
                 assertMsg "Only the teacher and assistant can revise the exam draft" (user == teacher || user == assistant)
                 create this with question = newQuestion
+
+
+        -- teacher can prepare a "new" exam for his class next year
+        choice BrandNewExam : ContractId DraftExam
+            controller teacher
+            do
+                create this with year = year + 1
 
         -- teacher can delete the draft exam (same as archive)
         choice ScrapExam : () 
