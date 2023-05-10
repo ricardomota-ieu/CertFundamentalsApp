@@ -10,7 +10,7 @@ Additionally, a DraftExam contract can be removed by the teacher with the ScrapE
 The Exam contract can be taken back to the draft stage with the FixExam choice if there is things to change, or removed entirely with the Remove choice, with teacher as the controller.
 
 ### II. Workflow
-1. A teacher creates a DraftExame contract. An assistant is invited as observer, both the manager and the assistant are authorized to exercise a Revise choice, to change the exam's question.
+1. A teacher creates a DraftExam contract. An assistant is invited as observer, both the manager and the assistant are authorized to exercise a Revise choice, to change the exam's question.
 2. Upon the controller exercising Publish, it generates a Exam contract with the provided student list as an observer.
 3. TakeExam choice can be exercised by a student in the students list, it creates a new ExamInProgress where the student can RewriteAnswer his answer to the exam's question.
 4. The teacher can exercise the Grade choice on the ExamInProgress to finish the exam and create a ExamGraded contract with the student's parent as an observer. It has a decimal score from 0 to 100, a grade letter is calculated based on the score.  
