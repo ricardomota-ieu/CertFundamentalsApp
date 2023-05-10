@@ -9,5 +9,6 @@ dependencies:
   - daml-script
 exposed-modules:
   - Main
+  - Test
 navigator-options:
  - --feature-user-management=false

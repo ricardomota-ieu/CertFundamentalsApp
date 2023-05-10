@@ -2,11 +2,10 @@
 Daml templates designed for a platform for proposing exam questions that can be revised, and the taking of such exams by students. They can be graded and be available to the parents to check.
 
 ### I. Overview 
-This project was created by forking the [Daml Fundamentals Certification Sample App](https://github.com/DACH-NY/FundamentalsSampleApp) repository that was created using the `empty-skeleton` template. The project adopts and exemplifies the `proposal-accept` design pattern.
-A signatory can create a DraftExam contract. Then they or an assistant, controller party, can exercise a Revise choice to alter the exam's question. When the teacher chooses they can exercise the Publish choice, with the students list as parameter, to create an Exam template that the students are observers and can take the exam creating an ExamInProgress template, where the the teacher and student are signatories.   
-
+This project was created by forking the [Daml Fundamentals Certification Sample App](https://github.com/DACH-NY/FundamentalsSampleApp) repository that was created using the `empty-skeleton` template. The project adopts and exemplifies the `proposal-accept` design pattern.  
+A signatory can create a DraftExam contract. Then they or an assistant, controller party, can exercise a Revise choice to alter the exam's question.  
+When the teacher chooses they can exercise the Publish choice, with the students list as parameter, to create an Exam template where the students are observers. A student can take the exam by exercising the TakeExam choice and creating an ExamInProgress template, where the teacher and student are signatories.   
 The ExamInProgress student's answer can be rewritten with a Rewrite choice by the student and finally it can be graded by the teacher with the Grade choice, providing a final score, a note and the supervising parent. This creates a ExamGraded visible to the observer parent, and teacher and student as signatories.  
-
 Additionally, a DraftExam contract can be removed by the teacher with the ScrapExam choice, and updated to a new school year with the BrandNewExam choice that increments the year on the DraftExam.  
 The Exam contract can be taken back to the draft stage with the FixExam choice if there is things to change, or removed entirely with the Remove choice, with teacher as the controller.
 
@@ -28,6 +27,7 @@ and replaced with the following:
 ```
 exposed-modules:
   - Main
+  - Test
 navigator-options:
  - --feature-user-management=false
 ```
